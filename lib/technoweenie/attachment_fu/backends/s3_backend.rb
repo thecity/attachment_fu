@@ -176,6 +176,10 @@ module Technoweenie # :nodoc:
       module S3Backend
         class RequiredLibraryNotFoundError < StandardError; end
         class ConfigFileNotFoundError < StandardError; end
+        
+        # aws-s3 lets you ask for grants using stupid symbols that it passes to a giant ACL object
+        # right-aws just wants a string, so let's do a cheap conversion
+        RIGHT_AWS_ACL_MAP = {:public_read => 'public-read', :private => 'private', :authenticated_read => 'authenticated-read'}
 
         def self.included(base) #:nodoc:
           mattr_reader :bucket_name, :s3_config
@@ -423,7 +427,8 @@ module Technoweenie # :nodoc:
             if defined?(S3Object)
               S3Object.delete full_filename, bucket_name
             else
-              @@s3_connection.bucket(bucket_name).key(full_filename).delete
+              doomed_key = @@s3_connection.bucket(bucket_name).key(full_filename)
+              doomed_key.delete if doomed_key.exists?
             end
           end
 
@@ -466,7 +471,7 @@ module Technoweenie # :nodoc:
                   full_filename,
                   temp_data,
                   {},
-                  attachment_options[:s3_access],
+                  RIGHT_AWS_ACL_MAP[attachment_options[:s3_access]],
                   {'content-type' => content_type}
                 )
               end
