@@ -1,3 +1,7 @@
+what is this?
+=============
+This is The City's customized attachment-fu. It's forked from a version that supports rightaws as the backend because aws-s3 is unmaintained.
+
 attachment-fu
 =============
 
