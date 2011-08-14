@@ -182,17 +182,19 @@ module Technoweenie # :nodoc:
 
           # CUSTOMIZED FOR HEROKU
           begin
-            if ENV['S3_BUCKET'].blank?
-              raise "reading from yml instead due to empty ENV['S3_BUCKET'] value"
+            %w(S3_ACCESS_KEY S3_BUCKET S3_SECRET_KEY).each do |val|
+              if ENV[val].blank?
+                raise "reading from yml instead due to empty ENV[#{val}] value"
+              end
             end
                         
             @@s3_config = { 
               :bucket_name       => ENV['S3_BUCKET'],
-              :access_key_id     => ENV['S3_ACCESS_KEY']    || raise "Missing S3_ACCESS_KEY in ENV",
-              :secret_access_key => ENV['S3_SECRET_KEY']    || raise "Missing S3_SECRET_KEY in ENV",
-              :persistent        => ENV['S3_PERSISTENCE']   || false,
-              :no_subdomains     => ENV['S3_NO_SUBDOMAINS'] || true,
-              :use_ssl           => ENV['S3_USE_SSL']       || false
+              :access_key_id     => ENV['S3_ACCESS_KEY'],
+              :secret_access_key => ENV['S3_SECRET_KEY'],
+              :persistent        => (ENV['S3_PERSISTENCE']   || false),
+              :no_subdomains     => (ENV['S3_NO_SUBDOMAINS'] || true),
+              :use_ssl           => (ENV['S3_USE_SSL']       || false)
             }
 
           rescue
@@ -381,7 +383,7 @@ module Technoweenie # :nodoc:
               # cannot set the response-content-disposition header.
               response_params = {}
             end
-            @@s3_generator.bucket(bucket_name).get(full_filename(thumbnail), options[:expires_in], {}, response_params)
+            @@s3_generator.bucket(bucket_name).get(full_filename(thumbnail), options[:expires_in], response_params)
           end
         end
 
