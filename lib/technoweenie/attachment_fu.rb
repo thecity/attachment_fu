@@ -317,7 +317,11 @@ module Technoweenie # :nodoc:
 
       # Returns true if the attachment data will be written to the storage system on the next save
       def save_attachment?
-        File.file?(temp_path.to_s)
+        if temp_path
+          return File.file?(temp_path.to_s)
+        else
+          return false
+        end
       end
 
       # nil placeholder in case this field is used in a form.
@@ -358,15 +362,16 @@ module Technoweenie # :nodoc:
       # An array of all the tempfile objects is stored so that the Tempfile instance is held on to until
       # it's not needed anymore.  The collection is cleared after saving the attachment.
       def temp_path
-        p = temp_paths.first
-        p.respond_to?(:path) ? p.path : p.to_s
+         return nil if temp_paths.empty?
+         p = temp_paths.first
+         p.respond_to?(:path) ? p.path : p.to_s
       end
-
+      
       # Gets an array of the currently used temp paths.  Defaults to a copy of #full_filename.
       def temp_paths
-        @temp_paths ||= (new_record? || !respond_to?(:full_filename) || !File.exist?(full_filename) ?
+        @temp_paths ||= (new_record? || filename.blank? || !respond_to?(:full_filename) || !File.exist?(full_filename) ?
           [] : [copy_to_temp_file(full_filename)])
-      end
+      end      
 
       # Gets the data from the latest temp file.  This will read the file into memory.
       def temp_data
@@ -415,7 +420,7 @@ module Technoweenie # :nodoc:
             name.gsub! /^.*(\\|\/)/, ''
 
             # Finally, replace all non alphanumeric, underscore or periods with underscore
-            name.gsub! /[^A-Za-z0-9\.\-]/, '_'
+            name.gsub! /[^\w\.\-]/, '_'
           end
         end
 

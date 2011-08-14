@@ -180,11 +180,25 @@ module Technoweenie # :nodoc:
         def self.included(base) #:nodoc:
           mattr_reader :bucket_name, :s3_config
 
+          # CUSTOMIZED FOR HEROKU
           begin
-            @@s3_config_path = base.attachment_options[:s3_config_path] || (RAILS_ROOT + '/config/amazon_s3.yml')
+            if ENV['S3_BUCKET'].blank?
+              raise "reading from yml instead due to empty ENV['S3_BUCKET'] value"
+            end
+                        
+            @@s3_config = { 
+              :bucket_name       => ENV['S3_BUCKET'],
+              :access_key_id     => ENV['S3_ACCESS_KEY']    || raise "Missing S3_ACCESS_KEY in ENV",
+              :secret_access_key => ENV['S3_SECRET_KEY']    || raise "Missing S3_SECRET_KEY in ENV",
+              :persistent        => ENV['S3_PERSISTENCE']   || false,
+              :no_subdomains     => ENV['S3_NO_SUBDOMAINS'] || true,
+              :use_ssl           => ENV['S3_USE_SSL']       || false
+            }
+
+          rescue
+            @@s3_config_path = base.attachment_options[:s3_config_path] || File.join(RAILS_ROOT, 'config', 'amazon_s3.yml')
+            raise 'Missing amazon_s3.yml' unless File.exist?(@@s3_config_path)
             @@s3_config = YAML.load(ERB.new(File.read(@@s3_config_path)).result)[RAILS_ENV].symbolize_keys
-          #rescue
-          #  raise ConfigFileNotFoundError.new('File %s not found' % @@s3_config_path)
           end
 
           bucket_key = base.attachment_options[:bucket_key]
@@ -278,6 +292,7 @@ module Technoweenie # :nodoc:
         # The full path to the file relative to the bucket name
         # Example: <tt>:table_name/:id/:filename</tt>
         def full_filename(thumbnail = nil)
+          return nil if thumbnail_name_for(thumbnail).blank?          
           File.join(base_path, thumbnail_name_for(thumbnail))
         end
 
@@ -314,6 +329,11 @@ module Technoweenie # :nodoc:
           else
             s3_url(args)
           end
+        end
+        
+        # custom method to have a public file name conveyed over SSL
+        def ssl_public_filename(thumbnail = nil)
+          File.join('https://' + s3_hostname + s3_port_string, bucket_name, full_filename(thumbnail))
         end
 
         # All private objects are accessible via an authenticated GET request to the S3 servers. You can generate an
@@ -396,6 +416,8 @@ module Technoweenie # :nodoc:
         protected
           # Called in the after_destroy callback
           def destroy_file
+            return if full_filename.blank?
+            
             if defined?(S3Object)
               S3Object.delete full_filename, bucket_name
             else
