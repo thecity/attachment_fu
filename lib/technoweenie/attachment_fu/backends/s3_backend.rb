@@ -179,7 +179,9 @@ module Technoweenie # :nodoc:
         
         # aws-s3 lets you ask for grants using stupid symbols that it passes to a giant ACL object
         # right-aws just wants a string, so let's do a cheap conversion
-        RIGHT_AWS_ACL_MAP = {:public_read => 'public-read', :private => 'private', :authenticated_read => 'authenticated-read'}
+        RIGHT_AWS_ACL_MAP = {:private => 'private', :authenticated_read => 'authenticated-read', :public_read => 'public-read',
+                             :public_read_write => 'public-read-write', :bucket_owner_read => 'bucket-owner-read',
+                             :bucket_owner_full_control => 'bucket-owner-full-control'}
 
         def self.included(base) #:nodoc:
           mattr_reader :bucket_name, :s3_config
@@ -472,7 +474,10 @@ module Technoweenie # :nodoc:
                   temp_data,
                   {},
                   RIGHT_AWS_ACL_MAP[attachment_options[:s3_access]],
-                  {'content-type' => content_type}
+                  {
+                    'Content-Type' => content_type,
+                    'Cache-Control' => 'max-age=315360000'
+                  }
                 )
               end
             end
