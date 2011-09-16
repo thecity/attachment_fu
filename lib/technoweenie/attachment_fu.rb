@@ -280,8 +280,12 @@ module Technoweenie # :nodoc:
         basename = filename.gsub /\.\w+$/ do |s|
           ext = s; ''
         end
+        
         # ImageScience doesn't create gif thumbnails, only pngs
-        ext.sub!(/gif$/, 'png') if attachment_options[:processor] == "ImageScience"
+        if attachment_options[:processor] == "ImageScience" and ext.present?
+          ext.sub!(/gif$/, 'png') 
+        end
+        
         "#{basename}_#{thumbnail}#{ext}"
       end
 
